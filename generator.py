@@ -19,7 +19,7 @@ MODE_BITS = 4
 ENDING = '0000'
 
 # error correction indicator
-ERROR_CORR_INDICATOR = {'L': '01', 'M': '00', 'Q': '11', 'H': 10}
+ERROR_CORR_INDICATOR = {'L': '01', 'M': '00', 'Q': '11', 'H': '10'}
 
 # the alpha-numeric map table
 ALPHANUMERIC_TABLE = {' ': 36, '$': 37, '%': 38, '*': 39, '+': 40,
@@ -67,12 +67,15 @@ DOWNWARDS = 1
 
 
 def main():
+    err_corc_level = 'Q'
+    data = 'https://www.liuhe.website'
+    version = 2
     generate_gf_table()
-    # a = encode("https://www.liuhe.website", 'Q')
-    a = encode("HELLO WORLD", "Q")
-    b = trans_bin_to_int(a)
-    c = RS_encode(b, ERROR_CORR_PER_BLOCK['Q'][2] * 2)
-    draw_qr_code(c)
+    encoded = encode(data, err_corc_level)
+    transed = trans_bin_to_int(encoded)
+    code = RS_encode(transed,
+                     ERROR_CORR_PER_BLOCK[err_corc_level][version] * 2)
+    draw_qr_code(code, version, err_corc_level)
 
 
 def encode(data, err_corc_level):
@@ -201,8 +204,8 @@ def draw_qr_code(bin_encode, version=2, err_corc_level='Q'):
     draw_alignment_pattern(qr_code_img, qr_code_flag)
     draw_timing_pattern(qr_code_img, qr_code_flag)
     draw_format_information(qr_code_img, err_corc_level, qr_code_flag)
-    '''
     draw_data(qr_code_img, qr_code_flag, bin_encode)
+
     # mask
     mask = generate_mask(VERSION_TABLE[version])
     # xor
@@ -214,9 +217,9 @@ def draw_qr_code(bin_encode, version=2, err_corc_level='Q'):
     draw_alignment_pattern(qr_code_img, qr_code_flag)
     draw_timing_pattern(qr_code_img, qr_code_flag)
     draw_format_information(qr_code_img, err_corc_level, qr_code_flag)
-    '''
-    plt.figure(figsize=(3, 3))
-    plt.imshow(qr_code_img, cmap=plt.cm.gray_r)
+
+    plt.figure(figsize=(5, 5))
+    plt.imshow(qr_code_img, cmap=plt.cm.gray_r, interpolation='nearest')
     # plt.imshow(mask, cmap=plt.cm.gray_r)
     plt.show()
 
@@ -284,30 +287,29 @@ def draw_timing_pattern(qr_code_img, qr_code_flag):
 
 def draw_format_information(qr_code_img, err_corc_level, qr_code_flag):
     indicator = ERROR_CORR_INDICATOR[err_corc_level]
-    mask_pattern = '111'
+    # mask_pattern = '111'
+    mask_pattern = '110'
     BCH_encoded = BCH_encode(indicator + mask_pattern, 10)
-    print BCH_encoded
     mask = '101010000010010'
     format_info = xor(BCH_encoded, mask)
     format_array = np.array([ord(x) - ord('0') for x in format_info])
-    print format_array
     flag = np.ones(len(format_array))
     n = len(qr_code_img)
     # 左上角
-    qr_code_img[0:6, 8] = format_array.T[0:6]
-    qr_code_img[7:9, 8] = format_array.T[6:8]
-    qr_code_img[8, 7] = format_array[8]
-    qr_code_img[8, 0:6] = format_array[9:][::-1]
+    qr_code_img[0:6, 8] = format_array.T[9:][::-1]
+    qr_code_img[7:9, 8] = format_array.T[7:9]
+    qr_code_img[8, 7] = format_array[6]
+    qr_code_img[8, 0:6] = format_array[0:6]
     # flag
     qr_code_flag[0:6, 8] = flag.T[0:6]
     qr_code_flag[7:9, 8] = flag.T[6:8]
     qr_code_flag[8, 7] = flag[8]
     qr_code_flag[8, 0:6] = flag[9:][::-1]
     # 右上角
-    qr_code_img[8, n-8:] = format_array[0:8][::-1]
+    qr_code_img[8, n-8:] = format_array[7:]
     qr_code_flag[8, n-8:] = flag[0:8][::-1]
     # 左下角
-    qr_code_img[n-7:, 8] = format_array.T[8:]
+    qr_code_img[n-7:, 8] = format_array.T[0:7][::-1]
     qr_code_flag[n-7:, 8] = flag.T[8:]
     qr_code_img[n-8, 8] = 1
     qr_code_flag[n-8, 8] = 1
@@ -398,7 +400,11 @@ def generate_mask(size):
     mask = np.zeros([size, size])
     for i in xrange(0, size):
         for j in xrange(0, size):
-            mask[j, i] = 1 - ((i * j) % 3 + (i + j) % 2) % 2
+            # mask[j, i] = 1 - ((i * j) % 3 + (i + j) % 2) % 2
+            if ((i * j) % 2 + (i * j) % 3) % 2 == 0:
+                mask[i, j] = 1
+            else:
+                mask[i, j] = 0
     '''
     for i in xrange(0, 9):
         for j in xrange(0, 9):
