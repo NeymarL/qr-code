@@ -30,6 +30,7 @@ COUNT_INDICATOR = 9
 
 # encode data bits
 DATA_BITS = 11
+DATA_BITS_MINI = 6
 
 # codeword bits
 CODEWORD_BITS = 8
@@ -67,9 +68,10 @@ DOWNWARDS = 1
 
 def main():
     generate_gf_table()
-    a = encode("https://www.liuhe.website", 'Q')
+    # a = encode("https://www.liuhe.website", 'Q')
+    a = encode("HELLO WORLD", "Q")
     b = trans_bin_to_int(a)
-    c = RS_encode(b, 22)
+    c = RS_encode(b, ERROR_CORR_PER_BLOCK['Q'][2] * 2)
     draw_qr_code(c)
 
 
@@ -92,11 +94,12 @@ def encode(data, err_corc_level):
         if len(couple) == 0:
             couple.append(num)
             if i == len(encoded_data) - 1:
-                bin_encode += trans_to_binary(num, DATA_BITS)
+                bin_encode += trans_to_binary(num, DATA_BITS_MINI)
         else:
             tmp = couple[0] * 45 + num
             couple = []
             bin_encode += trans_to_binary(tmp, DATA_BITS)
+        i = i + 1
     # print bin_encode
     # add number of characters
     bin_encode = trans_to_binary(len(data), COUNT_INDICATOR) + bin_encode
@@ -115,8 +118,6 @@ def encode(data, err_corc_level):
         bin_encode += PADDING_BYTES[i]
         i = i + 1
         i = i % 2
-    # print len(bin_encode)
-    # print bin_encode
     return bin_encode
 
 
@@ -132,7 +133,6 @@ def RS_encode(msg_in, nsym):
                 msg_out[i+j] ^= gf_mul(gen[j], coef)
     for i in range(0, len(msg_in)):
         msg_out[i] = msg_in[i]
-    # print msg_out
     bin_encode = ''
     for msg in msg_out:
         bin_encode += trans_to_binary(msg, CODEWORD_BITS)
@@ -201,9 +201,23 @@ def draw_qr_code(bin_encode, version=2, err_corc_level='Q'):
     draw_alignment_pattern(qr_code_img, qr_code_flag)
     draw_timing_pattern(qr_code_img, qr_code_flag)
     draw_format_information(qr_code_img, err_corc_level, qr_code_flag)
+    '''
     draw_data(qr_code_img, qr_code_flag, bin_encode)
+    # mask
+    mask = generate_mask(VERSION_TABLE[version])
+    # xor
+    for i in xrange(0, VERSION_TABLE[version]):
+        for j in xrange(0, VERSION_TABLE[version]):
+            qr_code_img[i, j] = int(qr_code_img[i, j]) ^ int(mask[i, j])
 
-    plt.imshow(qr_code_flag, cmap=plt.cm.gray_r)
+    draw_pos_detection_pattern(qr_code_img, qr_code_flag)
+    draw_alignment_pattern(qr_code_img, qr_code_flag)
+    draw_timing_pattern(qr_code_img, qr_code_flag)
+    draw_format_information(qr_code_img, err_corc_level, qr_code_flag)
+    '''
+    plt.figure(figsize=(3, 3))
+    plt.imshow(qr_code_img, cmap=plt.cm.gray_r)
+    # plt.imshow(mask, cmap=plt.cm.gray_r)
     plt.show()
 
 
@@ -223,12 +237,18 @@ def draw_pos_detection_pattern(qr_code_img, qr_code_flag):
     n = len(qr_code_img)
     # 左上角
     qr_code_img[0: 7, 0: 7] = pos_det_pattern
+    qr_code_img[0: 8, 7] = np.zeros([1, 8])
+    qr_code_img[7, 0: 8] = np.zeros([1, 8])
     qr_code_flag[0: 8, 0: 8] = flag
-    # 右上角
-    qr_code_img[n - 7: n, 0: 7] = pos_det_pattern
-    qr_code_flag[n - 8: n, 0: 8] = flag
     # 左下角
+    qr_code_img[n - 7: n, 0: 7] = pos_det_pattern
+    qr_code_img[n - 8: n, 7] = np.zeros([1, 8])
+    qr_code_img[n - 8, 0: 8] = np.zeros([1, 8])
+    qr_code_flag[n - 8: n, 0: 8] = flag
+    # 右上角
     qr_code_img[0: 7, n - 7: n] = pos_det_pattern
+    qr_code_img[0: 8, n - 8] = np.zeros([1, 8])
+    qr_code_img[7, n - 8: n] = np.zeros([1, 8])
     qr_code_flag[0: 8, n - 8: n] = flag
 
 
@@ -266,9 +286,11 @@ def draw_format_information(qr_code_img, err_corc_level, qr_code_flag):
     indicator = ERROR_CORR_INDICATOR[err_corc_level]
     mask_pattern = '111'
     BCH_encoded = BCH_encode(indicator + mask_pattern, 10)
+    print BCH_encoded
     mask = '101010000010010'
     format_info = xor(BCH_encoded, mask)
     format_array = np.array([ord(x) - ord('0') for x in format_info])
+    print format_array
     flag = np.ones(len(format_array))
     n = len(qr_code_img)
     # 左上角
@@ -317,15 +339,17 @@ def draw_data(qr_code_img, qr_code_flag, data):
                     j = j + 1
             mode = 1 - mode
         else:
-            print mode
-            print i, j
             if i <= 8 and j >= n - 7:
                 j = j - 2
                 i = i + 1
                 direction = DOWNWARDS
             elif i >= n:
-                j = j - 2
-                i = i - 1
+                if i == 25 and j == 10:
+                    j = j - 2
+                    i = 16
+                else:
+                    j = j - 2
+                    i = i - 1
                 direction = UPWARDS
             elif j > 16 and j <= 20:
                 if i > 18:
@@ -341,12 +365,52 @@ def draw_data(qr_code_img, qr_code_flag, data):
                     mode = 1
                 i = i - 1
                 mode = 1 - mode
-
+                k = k + 1
+            elif i == 6:
+                if direction == UPWARDS:
+                    i = i - 1
+                else:
+                    i = i + 1
+            elif i < 0:
+                i = i + 1
+                j = j - 2
+                direction = DOWNWARDS
+            elif i == 8 and j == 8:
+                j = j - 3
+                i = i + 1
+                direction = DOWNWARDS
+            elif i >= 17:
+                j = j - 2
+                i = i - 1
+                direction = UPWARDS
+            elif i <= 8:
+                j = j - 2
+                i = i + 1
+                direction = DOWNWARDS
             else:
                 break
             k = k - 1
 
         k = k + 1
+
+
+def generate_mask(size):
+    mask = np.zeros([size, size])
+    for i in xrange(0, size):
+        for j in xrange(0, size):
+            mask[j, i] = 1 - ((i * j) % 3 + (i + j) % 2) % 2
+    '''
+    for i in xrange(0, 9):
+        for j in xrange(0, 9):
+            mask[i, j] = 0
+    for i in xrange(size - 8, size):
+        for j in xrange(0, 9):
+            mask[i, j] = 0
+    for i in xrange(0, 9):
+        for j in xrange(size - 8, size):
+            mask[i, j] = 0
+    '''
+    return mask
 
 
 if __name__ == '__main__':
