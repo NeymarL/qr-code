@@ -345,4 +345,4 @@ if __name__ == '__main__':
     mode = 'Alphanumeric'
     version = 2
     qr_code = QR_Code(data, mode, version, err_corc_level)
-    qr_code.draw(save=True, path='/Users/liuhe/Desktop/h.png')
+    qr_code.draw()
