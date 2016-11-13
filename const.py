@@ -53,10 +53,6 @@ NUM_OF_CORR_CODEWORDS = {'L': 10, 'M': 16, 'Q': 22, 'H': 28}
 # Value of p
 VALLUE_OF_P = {'L': 2, 'M': 0, 'Q': 0, 'H': 0}
 
-# Galois Field exp table and log table
-GF_EXP = [1] * 512
-GF_LOG = [0] * 256
-
 # draw direction
 UPWARDS = 0
 DOWNWARDS = 1
