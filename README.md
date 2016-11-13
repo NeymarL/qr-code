@@ -1,6 +1,6 @@
 # QR Code Generator
 
-This is a demo QR code generator, I only implement mode `Alphanumeric` with version `2`.
+This is a QR code generator demo, I only implement mode `Alphanumeric` with version `2`.
 
 ## Usage
 
@@ -24,9 +24,6 @@ chmod 755 main.py
 
 * numpy
 * matplotlib
-
-## Code
-
 
 ## More
 
