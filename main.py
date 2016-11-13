@@ -46,8 +46,8 @@ def main():
 
 
 def usage():
-    print "Usage: %s -d <data> -e <level> [-s <path>] [-h] [--notshow]" %\
-        sys.argv[0]
+    print "Usage: %s -d <data> -e <level> [-s <path>] [-h] " % sys.argv[0],\
+        "[--notshow] [--size <size>]"
 
 if __name__ == '__main__':
     main()
