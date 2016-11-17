@@ -27,5 +27,7 @@ chmod 755 main.py
 
 ## More
 
+https://www.liuhe.website/index.php?/Articles/single/57
+
 ![My Website](QR_CODE.png)
 
